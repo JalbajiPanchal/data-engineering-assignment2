@@ -1,0 +1,95 @@
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:2.8.1
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./scripts:/opt/airflow/scripts
+    - ./spark_jobs:/opt/airflow/spark_jobs
+    - ./data/delta-lake:/opt/spark/delta-lake
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    restart: always
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command: -c "airflow db init && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
+    restart: on-failure
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8085:8080"
+    restart: always
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: always
+
+  spark-master:
+    image: apache/spark:3.5.0
+    ports:
+      - "8081:8080"
+      - "7078:7077"
+    volumes:
+      - ./data/delta-lake:/opt/spark/delta-lake
+      - ./spark_jobs:/opt/spark/spark_jobs
+      - ./scripts:/opt/spark/scripts
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    restart: always
+
+  spark-worker:
+    image: apache/spark:3.5.0
+    environment:
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+    volumes:
+      - ./data/delta-lake:/opt/spark/delta-lake
+      - ./spark_jobs:/opt/spark/spark_jobs
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    restart: always
+
+  scylladb:
+    image: scylladb/scylla:5.4
+    ports:
+      - "9042:9042"
+    volumes:
+      - scylla_data:/var/lib/scylla
+      - ./scylladb:/scylladb
+    command: --smp 1 --memory 512M --overprovisioned 1
+    restart: always
+
+volumes:
+  postgres_data:
+  scylla_data:
+
+networks:
+  default:
+    name: assignment2_network

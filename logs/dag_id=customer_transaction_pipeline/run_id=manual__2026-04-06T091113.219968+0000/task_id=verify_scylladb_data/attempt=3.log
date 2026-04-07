@@ -1,0 +1,28 @@
+[2026-04-07T05:20:14.628+0000] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: customer_transaction_pipeline.verify_scylladb_data manual__2026-04-06T09:11:13.219968+00:00 [queued]>
+[2026-04-07T05:20:14.641+0000] {taskinstance.py:1956} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: customer_transaction_pipeline.verify_scylladb_data manual__2026-04-06T09:11:13.219968+00:00 [queued]>
+[2026-04-07T05:20:14.642+0000] {taskinstance.py:2170} INFO - Starting attempt 3 of 3
+[2026-04-07T05:20:14.663+0000] {taskinstance.py:2191} INFO - Executing <Task(BashOperator): verify_scylladb_data> on 2026-04-06 09:11:13.219968+00:00
+[2026-04-07T05:20:14.671+0000] {standard_task_runner.py:60} INFO - Started process 250 to run task
+[2026-04-07T05:20:14.687+0000] {standard_task_runner.py:87} INFO - Running: ['***', 'tasks', 'run', 'customer_transaction_pipeline', 'verify_scylladb_data', 'manual__2026-04-06T09:11:13.219968+00:00', '--job-id', '38', '--raw', '--subdir', 'DAGS_FOLDER/pipeline_dag.py', '--cfg-path', '/tmp/tmpk2rpx3_t']
+[2026-04-07T05:20:14.691+0000] {standard_task_runner.py:88} INFO - Job 38: Subtask verify_scylladb_data
+[2026-04-07T05:20:14.784+0000] {task_command.py:423} INFO - Running <TaskInstance: customer_transaction_pipeline.verify_scylladb_data manual__2026-04-06T09:11:13.219968+00:00 [running]> on host cb070ebf4606
+[2026-04-07T05:20:14.890+0000] {taskinstance.py:2480} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='***' AIRFLOW_CTX_DAG_ID='customer_transaction_pipeline' AIRFLOW_CTX_TASK_ID='verify_scylladb_data' AIRFLOW_CTX_EXECUTION_DATE='2026-04-06T09:11:13.219968+00:00' AIRFLOW_CTX_TRY_NUMBER='3' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-04-06T09:11:13.219968+00:00'
+[2026-04-07T05:20:14.892+0000] {subprocess.py:63} INFO - Tmp dir root location: /tmp
+[2026-04-07T05:20:14.894+0000] {subprocess.py:75} INFO - Running command: ['/usr/bin/bash', '-c', '\n            echo "Verifying data in ScyllaDB..."\n            python3 -c "\nfrom cassandra.cluster import Cluster\ntry:\n    cluster = Cluster([\'scylladb\'])\n    session = cluster.connect(\'transactions_ks\')\n    rows = session.execute(\'SELECT COUNT(*) FROM daily_customer_totals\')\n    count = rows.one()[0]\n    print(\'ScyllaDB has \' + str(count) + \' rows in daily_customer_totals\')\n    cluster.shutdown()\nexcept Exception as e:\n    print(\'Verification failed: \' + str(e))\n    exit(1)\n"\n        ']
+[2026-04-07T05:20:14.906+0000] {subprocess.py:86} INFO - Output:
+[2026-04-07T05:20:14.908+0000] {subprocess.py:93} INFO - Verifying data in ScyllaDB...
+[2026-04-07T05:20:14.936+0000] {subprocess.py:93} INFO - Traceback (most recent call last):
+[2026-04-07T05:20:14.937+0000] {subprocess.py:93} INFO -   File "<string>", line 2, in <module>
+[2026-04-07T05:20:14.938+0000] {subprocess.py:93} INFO - ModuleNotFoundError: No module named 'cassandra'
+[2026-04-07T05:20:14.941+0000] {subprocess.py:97} INFO - Command exited with return code 1
+[2026-04-07T05:20:14.956+0000] {taskinstance.py:2698} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.8/site-packages/airflow/models/taskinstance.py", line 433, in _execute_task
+    result = execute_callable(context=context, **execute_callable_kwargs)
+  File "/home/airflow/.local/lib/python3.8/site-packages/airflow/operators/bash.py", line 212, in execute
+    raise AirflowException(
+airflow.exceptions.AirflowException: Bash command failed. The command returned a non-zero exit code 1.
+[2026-04-07T05:20:14.961+0000] {taskinstance.py:1138} INFO - Marking task as FAILED. dag_id=customer_transaction_pipeline, task_id=verify_scylladb_data, execution_date=20260406T091113, start_date=20260407T052014, end_date=20260407T052014
+[2026-04-07T05:20:14.980+0000] {standard_task_runner.py:107} ERROR - Failed to execute job 38 for task verify_scylladb_data (Bash command failed. The command returned a non-zero exit code 1.; 250)
+[2026-04-07T05:20:15.012+0000] {local_task_job_runner.py:234} INFO - Task exited with return code 1
+[2026-04-07T05:20:15.045+0000] {taskinstance.py:3280} INFO - 0 downstream tasks scheduled from follow-on schedule check
