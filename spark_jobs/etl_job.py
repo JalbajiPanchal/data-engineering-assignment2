@@ -28,71 +28,71 @@ def create_spark_session():
 
 
 def load_csv_to_delta(spark):
-    logger.info("📥 Reading CSV file...")
+    logger.info(" Reading CSV file...")
 
     df = spark.read \
         .option("header", "true") \
         .option("inferSchema", "true") \
         .csv("/opt/spark/scripts/transactions.csv")
 
-    logger.info(f"✅ Loaded {df.count()} raw records")
+    logger.info(f" Loaded {df.count()} raw records")
     df.printSchema()
 
-    logger.info("💾 Writing to Delta Lake...")
+    logger.info(" Writing to Delta Lake...")
     df.write \
         .format("delta") \
         .mode("overwrite") \
         .save("/opt/spark/delta-lake/customer_transactions")
 
-    logger.info("✅ Delta Lake table created!")
+    logger.info(" Delta Lake table created!")
     return df
 
 
 def read_from_delta(spark):
-    logger.info("📖 Reading from Delta Lake...")
+    logger.info(" Reading from Delta Lake...")
 
     df = spark.read \
         .format("delta") \
         .load("/opt/spark/delta-lake/customer_transactions")
 
-    logger.info(f"✅ Read {df.count()} records from Delta Lake")
+    logger.info(f" Read {df.count()} records from Delta Lake")
     return df
 
 
 def transform(spark, df):
 
-    logger.info("🔄 Removing duplicates...")
+    logger.info(" Removing duplicates...")
     window = Window.partitionBy("transaction_id").orderBy("timestamp")
     df_deduped = df.withColumn("rn", row_number().over(window)) \
                    .filter(col("rn") == 1) \
                    .drop("rn")
-    logger.info(f"✅ After dedup: {df_deduped.count()} records")
+    logger.info(f" After dedup: {df_deduped.count()} records")
 
-    logger.info("🔄 Filtering invalid amounts...")
+    logger.info(" Filtering invalid amounts...")
     df_valid = df_deduped.filter(col("amount") > 0)
-    logger.info(f"✅ After filter: {df_valid.count()} records")
+    logger.info(f" After filter: {df_valid.count()} records")
 
-    logger.info("🔄 Adding transaction_date column...")
+    logger.info(" Adding transaction_date column...")
     df_dated = df_valid.withColumn(
         "transaction_date",
         to_date(col("timestamp"))
     )
 
-    logger.info("🔄 Aggregating daily totals...")
+    logger.info(" Aggregating daily totals...")
     df_aggregated = df_dated.groupBy(
         "customer_id", "transaction_date"
     ).agg(
         spark_sum("amount").alias("daily_total")
     ).orderBy("customer_id", "transaction_date")
 
-    logger.info(f"✅ Aggregated: {df_aggregated.count()} rows")
+    logger.info(f" Aggregated: {df_aggregated.count()} rows")
     df_aggregated.show(10)
 
     return df_aggregated
 
 
 def write_to_scylladb(df):
-    logger.info("📤 Writing to ScyllaDB...")
+    logger.info(" Writing to ScyllaDB...")
 
     df.write \
         .format("org.apache.spark.sql.cassandra") \
@@ -101,7 +101,7 @@ def write_to_scylladb(df):
                  keyspace="transactions_ks") \
         .save()
 
-    logger.info("✅ Data written to ScyllaDB!")
+    logger.info(" Data written to ScyllaDB!")
 
 
 if __name__ == "__main__":
@@ -116,4 +116,4 @@ if __name__ == "__main__":
     write_to_scylladb(df_result)
 
     spark.stop()
-    logger.info("🎉 ETL Job Complete!")
+    logger.info(" ETL Job Complete!")
